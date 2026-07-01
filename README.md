@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/BetterCallChatGPT_black.png" alt="It's Better Call ChatGPT!" width="760">
+<img src="assets/banner.svg" alt="It's Better Call ChatGPT! — terminal banner" width="760">
 
 # ⚖ BetterCallChatGPT ⚖
 
@@ -176,6 +176,7 @@ scripts/
   show_header.sh          # the colored banner header
   img2ansi.py             # regenerate the banner art from the poster PNG (no chafa needed)
   blacken_to_transparent.py  # drop a chafa capture's black bg to the terminal background
+  make_banner_svg.py      # render the ANSI art into the README's terminal-window SVG (needs rich)
 templates/
   critique_prompt.md     # Mode A prompt template
   experiment_prompt.md   # Mode B prompt template
