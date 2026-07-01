@@ -11,6 +11,8 @@ inspect your repo but never edits your code or runs the fixes it proposes — Cl
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
+**🔗 Sibling skill: [⚖ BetterCallGemini ⚖](https://github.com/douglasadamoski/BetterCallGemini) — the same idea, with Google's Gemini (`agy`) instead of ChatGPT.**
+
 </div>
 
 ---
