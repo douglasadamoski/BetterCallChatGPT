@@ -1,0 +1,20 @@
+# Runtime state — recreated on first run; never commit (it holds your usage ledger,
+# the last session id, and temp prompt files that can name your private projects).
+state/*
+!state/.gitkeep
+
+# Reports the skill writes into projects it reviews
+BETTERCALLCHATGPT_REVIEW_*.md
+BETTERCALLCHATGPT_EXPERIMENT_*.md
+
+# Short-lived report temps written next to the report (writability probe + atomic-write temp)
+.bcc_wtest.*
+.bcc_report.*
+
+# Raw chafa captures / intermediate banner art
+*.chafaraw.txt
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*~

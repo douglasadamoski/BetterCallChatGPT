@@ -1,0 +1,24 @@
+{
+  "name": "bettercallchatgpt",
+  "description": "Marketplace for the BetterCallChatGPT Claude Code plugin.",
+  "owner": {
+    "name": "Douglas Adamoski"
+  },
+  "plugins": [
+    {
+      "name": "better-call-chatgpt",
+      "displayName": "BetterCallChatGPT",
+      "description": "Delegate an independent, critical code review to OpenAI's Codex CLI (codex / ChatGPT); Claude triages and implements. Codex only criticizes and proposes — its native read-only sandbox guarantees it never changes the codebase.",
+      "source": "./",
+      "version": "1.0.0",
+      "author": {
+        "name": "Douglas Adamoski",
+        "url": "https://github.com/douglasadamoski"
+      },
+      "homepage": "https://github.com/douglasadamoski/BetterCallChatGPT",
+      "repository": "https://github.com/douglasadamoski/BetterCallChatGPT",
+      "license": "GPL-3.0",
+      "keywords": ["code-review", "chatgpt", "codex", "openai", "claude-code"]
+    }
+  ]
+}
