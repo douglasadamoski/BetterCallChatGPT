@@ -14,7 +14,14 @@ BETTERCALLCHATGPT_EXPERIMENT_*.md
 # Raw chafa captures / intermediate banner art
 *.chafaraw.txt
 
+# Python bytecode cache (py_compile / imports leave these behind)
+__pycache__/
+*.py[cod]
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db
 *~
+
+# Raw JSON salvaged from an interrupted (already billed) run, if a legacy in-repo state dir exists
+orphan-*.jsonl
