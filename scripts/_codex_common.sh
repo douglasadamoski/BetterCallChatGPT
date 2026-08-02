@@ -97,46 +97,75 @@ bcc_init_state() {
   done
   [[ ${#present[@]} -gt 0 ]] || return 0
 
-  if [[ ! -f "$LEDGER" ]]; then
-    # MERGE every legacy ledger, don't just copy the biggest. If two installs each billed calls
-    # today, seeding from one of them undercounts the cap — which is the same dishonesty the
-    # single-ledger change exists to fix, just quieter. Dedupe on the exact line: rows are
-    # append-only JSON with a timestamp, so an identical line is genuinely the same call (e.g.
-    # a ledger that was previously copied between installs).
-    python3 - "$LEDGER" "${present[@]}" <<'PY' 2>/dev/null || true
-import sys
-out, sources = sys.argv[1], sys.argv[2:]
-seen, rows = set(), []
-for src in sources:
-    try:
-        with open(src, encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                line = line.rstrip("\n")
-                if not line.strip() or line in seen:
-                    continue
-                seen.add(line)
-                rows.append(line)
-    except OSError:
-        continue
-# Chronological where possible, so the file still reads like a log.
-rows.sort(key=lambda r: r[9:29] if r.startswith('{"ts":"') else "")
-tmp = out + ".tmp"
-with open(tmp, "w", encoding="utf-8") as fh:
-    for r in rows:
-        fh.write(r + "\n")
-import os
-os.replace(tmp, out)
-PY
-    [[ -f "$LEDGER" ]] && echo "Note: merged ${#present[@]} legacy usage ledger(s) into $LEDGER." >&2
+  # An explicitly chosen $BCC_STATE_DIR is a deliberate, isolated location — a test fixture or a
+  # per-project ledger. Importing another install's history into it would be wrong, and it makes
+  # the test harness non-hermetic (it inherited the real ledger and skewed every cap assertion).
+  # Still SAY what is not being counted; silence here is how a cap quietly stops meaning anything.
+  if [[ -n "${BCC_STATE_DIR:-}" ]]; then
+    echo "Note: \$BCC_STATE_DIR is set, so $LEDGER is used as-is." >&2
+    echo "      These other ledgers exist and are NOT counted here:" >&2
+    printf '        - %s\n' "${present[@]}" >&2
+    return 0
   fi
-  # Anything still sitting in an old location is invisible to the cap from now on. Say so once,
-  # by name, so the user can reconcile rather than wonder why the count changed.
-  # `present`, not `legacies` — the latter still holds the pre-dedupe list.
-  local -a others=("${present[@]}")
-  if [[ ${#others[@]} -gt 0 ]]; then
-    echo "Note: BetterCallChatGPT now keeps ONE ledger at $LEDGER." >&2
-    echo "      These older per-install ledgers are no longer counted (delete them once reconciled):" >&2
-    printf '        - %s\n' "${others[@]}" >&2
+
+  # RECONCILE ON EVERY RUN, not once.
+  #
+  # The obvious designs are both wrong, and both were measured wrong on this machine:
+  #   * "merge only if the shared ledger does not exist yet" — whichever install runs first wins
+  #     and every other install's history is lost. This shipped in v1.1.0 and cost 2 billed rows.
+  #   * "merge each source once, recorded in a marker file" — fixes a source that appears LATER,
+  #     but NOT one that is still being appended to. An install you have not upgraded yet keeps
+  #     writing to its own ledger, and every row it writes after its one-time merge is lost.
+  #       Exactly that happened here: two billed calls (15:20 and 15:35) were written by
+  #       not-yet-upgraded installs minutes after the one-shot merge had already run.
+  #
+  # So: diff every run and append only what is genuinely missing. Dedupe is on the exact line —
+  # rows are append-only JSON carrying a UTC timestamp, so an identical line IS the same call.
+  # The common case (nothing new) performs no write at all, and when there is something to add it
+  # goes through the same append-under-lock path as a normal row, so a concurrent run cannot
+  # clobber it. Once you delete the old ledgers this costs nothing.
+  local missing; missing="$(bcc_mktemp migrate)" || return 0
+  python3 - "$LEDGER" "$missing" "${present[@]}" <<'PY' 2>/dev/null
+import sys
+ledger, out, sources = sys.argv[1], sys.argv[2], sys.argv[3:]
+
+def rows(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return [ln.rstrip("\n") for ln in fh if ln.strip()]
+    except OSError:
+        return []
+
+have = set(rows(ledger))
+new, seen = [], set()
+for src in sources:
+    for line in rows(src):
+        if line in have or line in seen:
+            continue
+        seen.add(line)
+        new.append(line)
+new.sort(key=lambda r: r[9:29] if r.startswith('{"ts":"') else "")
+with open(out, "w", encoding="utf-8") as fh:
+    for line in new:
+        fh.write(line + "\n")
+PY
+  if [[ -s "$missing" ]]; then
+    local n; n="$(grep -c '' "$missing" 2>/dev/null)"; n="${n//[!0-9]/}"
+    {
+      flock 9 2>/dev/null || true    # advisory, exactly as in bcc_ledger_append
+      cat "$missing" >> "$LEDGER"
+    } 9>"$STATE_DIR/.ledger.lock" \
+      && echo "Note: recovered ${n:-?} usage row(s) from an older per-install ledger into $LEDGER." >&2
+  fi
+  rm -f "$missing" 2>/dev/null
+
+  # The old files still exist and an un-upgraded install may still be writing to them. Say so by
+  # name — their rows ARE picked up on each run, but only while the file is still there.
+  if [[ ${#present[@]} -gt 0 ]]; then
+    echo "Note: BetterCallChatGPT keeps ONE ledger at $LEDGER." >&2
+    echo "      These older per-install ledgers are reconciled into it on every run." >&2
+    echo "      Upgrade or delete them so they stop being written to:" >&2
+    printf '        - %s\n' "${present[@]}" >&2
   fi
   return 0
 }

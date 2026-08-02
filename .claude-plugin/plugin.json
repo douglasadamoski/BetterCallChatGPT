@@ -1,7 +1,7 @@
 {
   "name": "better-call-chatgpt",
   "displayName": "BetterCallChatGPT",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Delegate an independent, critical code review to OpenAI's Codex CLI (codex / ChatGPT); Claude then triages and implements the feedback. Codex only criticizes and proposes — its native read-only sandbox guarantees it never changes the codebase.",
   "author": {
     "name": "Douglas Adamoski",

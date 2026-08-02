@@ -193,8 +193,10 @@ error it **stops and tells you to wait** for the reset. Higher `--effort` (`xhig
 limits faster.
 
 > The ledger lives outside the skill folder on purpose. Before v1.1.0 a plugin install and a
-> `~/.claude/skills` clone each kept their own, so `--cap N` silently behaved like `2N`. On first
-> run the old ledger is migrated and any leftovers are named on stderr.
+> `~/.claude/skills` clone each kept their own, so `--cap N` silently behaved like `2N`. Old
+> per-install ledgers are reconciled into the shared one **on every run** (deduped, so there's no
+> write when there's nothing new) — a one-time merge would lose whatever an install you hadn't
+> upgraded yet wrote afterwards. Leftovers are named on stderr; upgrade or delete them.
 
 ## Layout
 

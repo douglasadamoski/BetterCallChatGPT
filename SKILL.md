@@ -209,9 +209,12 @@ AUTH/CAP/QUOTA/TIMEOUT/TRUNCATED, say so and what to do next.
   `$BCC_CONDA_ENV`; it defaults to `base`. Prefer a dedicated env over base/system.
 - **One ledger, one cap.** State lives at `${BCC_STATE_DIR:-$HOME/.bettercallchatgpt}`, *not*
   inside the skill folder — a plugin install and a `~/.claude/skills` clone used to keep separate
-  ledgers, so `--cap N` silently became `2N`. On first run the ledger is migrated from whichever
-  old per-install location has the most history, and any others are named on stderr so they can
-  be reconciled and deleted.
+  ledgers, so `--cap N` silently became `2N`. Every old per-install ledger is reconciled into it
+  **on every run**, not once: an install you haven't upgraded yet keeps writing to its own file,
+  and a one-time merge loses everything written after it. Rows are deduped, so a run with nothing
+  new to pick up writes nothing. The old files are named on stderr — upgrade or delete them.
+  Setting `$BCC_STATE_DIR` explicitly opts out of reconciliation entirely (it's then treated as a
+  deliberate, isolated ledger), but still reports what isn't being counted.
 - Codex sessions persist under `~/.codex` (outside your repo); the thread id is saved **per
   scope** under `$BCC_STATE_DIR/sessions/`, and each report prints its `Session id`.
   `--continue` resumes *this scope's* last session; for **parallel** reviews pass
