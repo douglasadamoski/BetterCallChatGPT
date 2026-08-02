@@ -83,10 +83,17 @@ bcc_init_state() {
     [[ -f "$g" ]] && legacies+=("$g")
   done
 
+  # Dedupe by canonical path: the running install is often ALSO one of the well-known locations
+  # (a ~/.claude/skills clone is both $SKILL_DIR and the hardcoded skills path), and listing the
+  # same ledger twice makes the migration notice look like there are more strays than there are.
   local -a present=()
-  local f
+  local f rf seen_paths=":"
   for f in "${legacies[@]}"; do
-    [[ -f "$f" && -s "$f" ]] && present+=("$f")
+    [[ -f "$f" && -s "$f" ]] || continue
+    rf="$(bcc_realpath "$f" 2>/dev/null || echo "$f")"
+    [[ "$seen_paths" == *":$rf:"* ]] && continue
+    seen_paths="${seen_paths}${rf}:"
+    present+=("$rf")
   done
   [[ ${#present[@]} -gt 0 ]] || return 0
 
@@ -124,10 +131,8 @@ PY
   fi
   # Anything still sitting in an old location is invisible to the cap from now on. Say so once,
   # by name, so the user can reconcile rather than wonder why the count changed.
-  local -a others=()
-  for f in "${legacies[@]}"; do
-    [[ -f "$f" && -s "$f" ]] && others+=("$f")
-  done
+  # `present`, not `legacies` — the latter still holds the pre-dedupe list.
+  local -a others=("${present[@]}")
   if [[ ${#others[@]} -gt 0 ]]; then
     echo "Note: BetterCallChatGPT now keeps ONE ledger at $LEDGER." >&2
     echo "      These older per-install ledgers are no longer counted (delete them once reconciled):" >&2
